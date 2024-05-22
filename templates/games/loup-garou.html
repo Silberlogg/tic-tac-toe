@@ -28,8 +28,10 @@
                             data-bs-toggle="dropdown" aria-expanded="false">
                             Jeux
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="gamesDropdown">
+                        <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <li><a class="dropdown-item" href="/games/tic-tac-toe">Morpion</a></li>
+                        </ul>
+                        <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <li><a class="dropdown-item" href="/games/loup-garou">Loup-Garou</a></li>
                         </ul>
                     </li>
@@ -37,6 +39,7 @@
             </div>
         </div>
     </nav>
+
 
     <div class="container mt-5">
         <div class="row">
@@ -47,10 +50,10 @@
                 <div class="card mb-3" id="user-card">
                     <div class="card-body">
 
-                        <form method="POST" id="form">
+                        <form method="POST" id="formWolf">
                             <div class="mb-3">
 
-                                <label for="username" class="form-label">Nom d'utilisateur</label>
+                                <label for="username" class="form-label">Nom d'utilisateur pour loup-garou</label>
                                 <input type="text" class="form-control" id="username" minlength="2" maxlength="20"
                                     placeholder="Saisir votre nom d'utilisateur" required>
                             </div>

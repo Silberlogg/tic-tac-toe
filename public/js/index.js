@@ -9,6 +9,16 @@ const player = {
     win: false
 };
 
+const playerWolf = {
+    host: false,
+    playedCell: "",
+    roomId: null,
+    username: "",
+    socketId: "",
+    turn: false,
+    win: false
+};
+
 const socket = io();
 
 const queryString = window.location.search;
@@ -38,7 +48,7 @@ let ennemyUsername = "";
 socket.emit('get rooms');
 socket.on('list rooms', (rooms) => {
     let html = "";
-
+    console.log("rooms", rooms);
     if (rooms.length > 0) {
         rooms.forEach(room => {
             if (room.players.length !== 2) {
@@ -81,17 +91,35 @@ $("#form").on('submit', function (e) {
     socket.emit('playerData', player);
 });
 
+$("#formWolf").on('submit', function (e) {
+    console.log("coucou le loup")
+    e.preventDefault();
+
+    playerWolf.username = usernameInput.value;
+
+    if (roomId) {
+        playerWolf.roomId = roomId;
+    } else {
+        playerWolf.host = true;
+        playerWolf.turn = true;
+    }
+
+    playerWolf.socketId = socket.id;
+
+    userCard.hidden = true;
+    waitingArea.classList.remove('d-none');
+    roomsCard.classList.add('d-none');
+
+    socket.emit('playerDataWolf', playerWolf);
+});
+
 $(".cell").on("click", function (e) {
     const playedCell = this.getAttribute('id');
-
     if (this.innerText === "" && player.turn) {
         player.playedCell = playedCell;
-
         this.innerText = player.symbol;
-
         player.win = calculateWin(playedCell);
         player.turn = false;
-
         socket.emit('play', player);
     }
 });

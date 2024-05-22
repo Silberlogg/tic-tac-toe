@@ -25,6 +25,10 @@ app.get('/games/tic-tac-toe', (req, res) => {
     res.sendFile(path.join(__dirname, 'templates/games/tic-tac-toe.html'));
 });
 
+app.get('/games/loup-garou', (req, res) => {
+    res.sendFile(path.join(__dirname, 'templates/games/loup-garou.html'));
+});
+
 http.listen(port, () => {
     console.log(`Listening on http://localhost:${port}/`);
 });
@@ -33,6 +37,35 @@ let rooms = [];
 
 io.on('connection', (socket) => {
     console.log(`[connection] ${socket.id}`);
+
+
+    socket.on('playerDataWolf', (playerWolf) => {
+        console.log(`[playerDataWolf] ${playerWolf.username}`);
+
+        let room = null;
+
+        if (!playerWolf.roomId) {
+            room = createRoom(playerWolf);
+            console.log(`[create room ] - ${room.id} - ${playerWolf.username}`);
+        } else {
+            room = rooms.find(r => r.id === playerWolf.roomId);
+
+            if (room === undefined) {
+                return;
+            }
+
+            playerWolf.roomId = room.id;
+            room.players.push(playerWolf);
+        }
+
+        socket.join(room.id);
+
+        io.to(socket.id).emit('join room', room.id);
+
+        if (room.players.length === 2) {
+            io.to(room.id).emit('start game', room.players);
+        }
+    });
 
     socket.on('playerData', (player) => {
         console.log(`[playerData] ${player.username}`);
@@ -95,7 +128,18 @@ io.on('connection', (socket) => {
 });
 
 function createRoom(player) {
-    const room = { id: roomId(), players: [] };
+    const room = { id: roomId(), players: [], wolf:false };
+
+    player.roomId = room.id;
+
+    room.players.push(player);
+    rooms.push(room);
+
+    return room;
+}
+
+function createRoomWolf(player) {
+    const room = { id: roomId(), players: [], wolf:true };
 
     player.roomId = room.id;
 
