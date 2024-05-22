@@ -131,7 +131,6 @@ function createRoom(player) {
     const room = { id: roomId(), players: [], wolf:false };
 
     player.roomId = room.id;
-
     room.players.push(player);
     rooms.push(room);
 

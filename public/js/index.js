@@ -50,11 +50,18 @@ socket.on('list rooms', (rooms) => {
     let html = "";
     console.log("rooms", rooms);
     if (rooms.length > 0) {
+        console.log("salle du loup", rooms.wolf);
         rooms.forEach(room => {
             if (room.players.length !== 2) {
                 html += `<li class="list-group-item d-flex justify-content-between">
-                            <p class="p-0 m-0 flex-grow-1 fw-bold">Salon de ${room.players[0].username} - ${room.id}</p>
+                            <p class="p-0 m-0 flex-grow-1 fw-bold">Salon de ${room.players[0].username} - ${room.id} jeux : tic-tac-toe</p>
                             <button class="btn btn-sm btn-success join-room" data-room="${room.id}">Rejoindre</button>
+                        </li>`;
+            }
+            if (room.players.length !== 4) {
+                html += `<li class="list-group-item d-flex justify-content-between">
+                            <p class="p-0 m-0 flex-grow-1 fw-bold">Salon de ${room.players[0].username} - ${room.id} jeux : Loup-garou</p>
+                            <button class="btn btn-sm btn-success join-room-wolf" data-room="${room.id}">Rejoindre</button>
                         </li>`;
             }
         });
@@ -63,12 +70,17 @@ socket.on('list rooms', (rooms) => {
     if (html !== "") {
         roomsCard.classList.remove('d-none');
         roomsList.innerHTML = html;
-
+        console.log(window.location.search);
         for (const element of document.getElementsByClassName('join-room')) {
-            element.addEventListener('click', joinRoom, false)
-        }
+            element.addEventListener('click', joinRoomTicTact, false);
     }
+    for (const element of document.getElementsByClassName('join-room-wolf')) {
+    element.addEventListener('click', joinRoomWolf, false);
+    }
+
+}
 });
+
 
 $("#form").on('submit', function (e) {
     e.preventDefault();
@@ -324,13 +336,28 @@ function calculateWin(playedCell, symbol = player.symbol) {
     }
 }
 
-const joinRoom = function () {
+const joinRoomTicTact = function () {
     if (usernameInput.value !== "") {
         player.username = usernameInput.value;
         player.socketId = socket.id;
         player.roomId = this.dataset.room;
-
+        
         socket.emit('playerData', player);
+
+        userCard.hidden = true;
+        waitingArea.classList.remove('d-none');
+        roomsCard.classList.add('d-none');
+    }
+}
+
+const joinRoomWolf = function () {
+    console.log("c'est parti les loups");
+    if (usernameInput.value !== "") {
+        player.username = usernameInput.value;
+        player.socketId = socket.id;
+        player.roomId = this.dataset.room;
+        
+        socket.emit('playerDataWolf', player);
 
         userCard.hidden = true;
         waitingArea.classList.remove('d-none');
