@@ -34,10 +34,11 @@ http.listen(port, () => {
 });
 
 let rooms = [];
+let wolfRooms = [];
+
 
 io.on('connection', (socket) => {
     console.log(`[connection] ${socket.id}`);
-
 
     socket.on('playerDataWolf', (playerWolf) => {
         console.log(`[playerDataWolf] ${playerWolf.username}`);
@@ -45,10 +46,10 @@ io.on('connection', (socket) => {
         let room = null;
 
         if (!playerWolf.roomId) {
-            room = createRoom(playerWolf);
+            room = createRoom(playerWolf, true);
             console.log(`[create room ] - ${room.id} - ${playerWolf.username}`);
         } else {
-            room = rooms.find(r => r.id === playerWolf.roomId);
+            room = wolfRooms.find(r => r.id === playerWolf.roomId);
 
             if (room === undefined) {
                 return;
@@ -62,18 +63,39 @@ io.on('connection', (socket) => {
 
         io.to(socket.id).emit('join room', room.id);
 
+
+
+
         if (room.players.length === 2) {
-            io.to(room.id).emit('start game', room.players);
+            let roleArray = ['Loup-Garou', 'Villageois 1', 'Villageois 2', 'Voyante', 'Sorcière'];
+            room.players.forEach(p =>  {
+                console.log("player", p);
+                p.role = dealRoleWolf(roleArray)
+                console.log("player role", p.role);
+
+                const index = roleArray.indexOf(p.role);
+                if (index !== -1) {
+                    roleArray.splice(index, 1);
+                }
+            }
+
+            )
+            console.log("la partie est lancée");
+            io.to(room.id).emit('start game wolf', room.players);
         }
     });
 
+
+
+
+
     socket.on('playerData', (player) => {
-        console.log(`[playerData] ${player.username}`);
+        console.log(`[playerDataTicTac] ${player.username}`);
 
         let room = null;
 
         if (!player.roomId) {
-            room = createRoom(player);
+            room = createRoom(player, false);
             console.log(`[create room ] - ${room.id} - ${player.username}`);
         } else {
             room = rooms.find(r => r.id === player.roomId);
@@ -88,7 +110,7 @@ io.on('connection', (socket) => {
 
         socket.join(room.id);
 
-        io.to(socket.id).emit('join room', room.id);
+        io.to(socket.id).emit('join room', room.id, false);
 
         if (room.players.length === 2) {
             io.to(room.id).emit('start game', room.players);
@@ -96,7 +118,8 @@ io.on('connection', (socket) => {
     });
 
     socket.on('get rooms', () => {
-        io.to(socket.id).emit('list rooms', rooms);
+        console.log("chambre", rooms, wolfRooms);
+        io.to(socket.id).emit('list rooms', rooms, wolfRooms);
     });
 
     socket.on('play', (player) => {
@@ -127,27 +150,35 @@ io.on('connection', (socket) => {
     });
 });
 
-function createRoom(player) {
+
+
+
+
+
+
+function createRoom(player, isWolfRoom) {
     const room = { id: roomId(), players: [], wolf:false };
 
     player.roomId = room.id;
     room.players.push(player);
-    rooms.push(room);
+    if(isWolfRoom){
+        wolfRooms.push(room);
+    } else {
+        rooms.push(room);
+    }
 
     return room;
 }
 
-function createRoomWolf(player) {
-    const room = { id: roomId(), players: [], wolf:true };
-
-    player.roomId = room.id;
-
-    room.players.push(player);
-    rooms.push(room);
-
-    return room;
-}
 
 function roomId() {
     return Math.random().toString(36).substr(2, 9);
+}
+
+function dealRoleWolf(roleArray){
+    console.log("la liste", roleArray, roleArray.length)
+    const randomRole = roleArray[Math.floor(Math.random() * roleArray.length)];
+    console.log("role" , randomRole);
+    return randomRole;
+
 }

@@ -9,16 +9,6 @@ const player = {
     win: false
 };
 
-const playerWolf = {
-    host: false,
-    playedCell: "",
-    roomId: null,
-    username: "",
-    socketId: "",
-    turn: false,
-    win: false
-};
-
 const socket = io();
 
 const queryString = window.location.search;
@@ -46,7 +36,8 @@ const linkToShare = document.getElementById('link-to-share');
 let ennemyUsername = "";
 
 socket.emit('get rooms');
-socket.on('list rooms', (rooms) => {
+socket.on('list rooms', (rooms,wolfRooms) => {
+    if(document.URL.includes("tic")){
     let html = "";
     console.log("rooms", rooms);
     if (rooms.length > 0) {
@@ -58,28 +49,40 @@ socket.on('list rooms', (rooms) => {
                             <button class="btn btn-sm btn-success join-room" data-room="${room.id}">Rejoindre</button>
                         </li>`;
             }
-            if (room.players.length !== 4) {
-                html += `<li class="list-group-item d-flex justify-content-between">
-                            <p class="p-0 m-0 flex-grow-1 fw-bold">Salon de ${room.players[0].username} - ${room.id} jeux : Loup-garou</p>
-                            <button class="btn btn-sm btn-success join-room-wolf" data-room="${room.id}">Rejoindre</button>
-                        </li>`;
-            }
         });
     }
-
     if (html !== "") {
         roomsCard.classList.remove('d-none');
         roomsList.innerHTML = html;
-        console.log(window.location.search);
         for (const element of document.getElementsByClassName('join-room')) {
             element.addEventListener('click', joinRoomTicTact, false);
     }
-    for (const element of document.getElementsByClassName('join-room-wolf')) {
-    element.addEventListener('click', joinRoomWolf, false);
+    }
+    } else if(document.URL.includes("loup")){
+        let html = "";
+        console.log("wolfRooms", wolfRooms);
+        if (wolfRooms.length > 0) {
+            wolfRooms.forEach(room => {
+                if (room.players.length !== 4) {
+                    html += `<li class="list-group-item d-flex justify-content-between">
+                                <p class="p-0 m-0 flex-grow-1 fw-bold">Salon de ${room.players[0].username} - ${room.id} jeux : Loup-garou</p>
+                                <button class="btn btn-sm btn-success join-wolfRoom" data-room="${room.id}">Rejoindre</button>
+                            </li>`;
+                }
+            });
+        }
+    
+        if (html !== "") {
+            roomsCard.classList.remove('d-none');
+            roomsList.innerHTML = html;
+        for (const element of document.getElementsByClassName('join-wolfRoom')) {
+        element.addEventListener('click', joinRoomWolf, false);
+        }
     }
 
-}
-});
+
+    }
+    });
 
 
 $("#form").on('submit', function (e) {
@@ -145,10 +148,34 @@ socket.on('join room', (roomId) => {
     linkToShare.innerHTML = `<a href="${window.location.href}?room=${player.roomId}" target="_blank">${window.location.href}?room=${player.roomId}</a>`;
 });
 
+
 socket.on('start game', (players) => {
     console.log(players)
     startGame(players);
 });
+
+socket.on('start game wolf', (players) => {
+    console.log("loup", players)
+    startGameWolf(players);
+});
+
+function startGameWolf(players){
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 socket.on('play', (ennemyPlayer) => {
 
