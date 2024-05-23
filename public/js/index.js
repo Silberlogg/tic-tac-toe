@@ -2,6 +2,7 @@ const player = {
     host: false,
     playedCell: "",
     roomId: null,
+    role: "",
     username: "",
     socketId: "",
     symbol: "X",
@@ -33,10 +34,23 @@ const roomsList = document.getElementById('rooms-list');
 const turnMsg = document.getElementById('turn-message');
 const linkToShare = document.getElementById('link-to-share');
 
+const loupClass = document.getElementById('role-loup');
+const voyanteClass = document.getElementById('role-voyante');
+const villageoisClass = document.getElementById('role-villageois');
+const sorciereClass = document.getElementById('role-sorciere');
+
+
+
 let ennemyUsername = "";
 
 socket.emit('get rooms');
 socket.on('list rooms', (rooms,wolfRooms) => {
+    loupClass.classList.add('d-none');
+    voyanteClass.classList.add('d-none');
+    villageoisClass.classList.add('d-none');
+    sorciereClass.classList.add('d-none');
+
+
     if(document.URL.includes("tic")){
     let html = "";
     console.log("rooms", rooms);
@@ -63,7 +77,7 @@ socket.on('list rooms', (rooms,wolfRooms) => {
         console.log("wolfRooms", wolfRooms);
         if (wolfRooms.length > 0) {
             wolfRooms.forEach(room => {
-                if (room.players.length !== 4) {
+                if (room.players.length !== 2) {
                     html += `<li class="list-group-item d-flex justify-content-between">
                                 <p class="p-0 m-0 flex-grow-1 fw-bold">Salon de ${room.players[0].username} - ${room.id} jeux : Loup-garou</p>
                                 <button class="btn btn-sm btn-success join-wolfRoom" data-room="${room.id}">Rejoindre</button>
@@ -110,22 +124,23 @@ $("#formWolf").on('submit', function (e) {
     console.log("coucou le loup")
     e.preventDefault();
 
-    playerWolf.username = usernameInput.value;
+    player.username = usernameInput.value;
 
     if (roomId) {
-        playerWolf.roomId = roomId;
+        player.roomId = roomId;
     } else {
-        playerWolf.host = true;
-        playerWolf.turn = true;
+        player.host = true;
+        player.turn = true;
     }
 
-    playerWolf.socketId = socket.id;
+    player.socketId = socket.id;
 
     userCard.hidden = true;
     waitingArea.classList.remove('d-none');
     roomsCard.classList.add('d-none');
+    loupClass.classList.add('d-none');
 
-    socket.emit('playerDataWolf', playerWolf);
+    socket.emit('playerDataWolf', player);
 });
 
 $(".cell").on("click", function (e) {
@@ -160,25 +175,94 @@ socket.on('start game wolf', (players) => {
 });
 
 function startGameWolf(players){
+    players = dealRolePlayers(players);
+    loupClass.classList.remove('d-none');
+    restartArea.classList.add('d-none');
+    waitingArea.classList.add('d-none');
+    loupClass.classList.remove('d-none');
+    turnMsg.classList.remove('d-none');
+
+    const ennemyPlayer = players.find(p => p.socketId != player.socketId);
+    console.log("l'ennemi", ennemyPlayer);
+
+    ennemyUsername = ennemyPlayer.username;
+    socket.emit('playWolf', player);
+
+/*     if (player.host && player.turn) {
+        //setTurnMessage('alert-info', 'alert-success', "C'est ton tour de jouer");
+    } else {
+        //setTurnMessage('alert-success', 'alert-info', `C'est au tour de <b>${ennemyUsername}</b> de jouer`);
+    } */
+
+
+
+}
+
+socket.on('playWolf', (ennemyPlayer) => {
+    console.log("la partie loup-garou lancée", ennemyPlayer);
+    firstTurn(ennemyPlayer);
+    if (ennemyPlayer.socketId !== player.socketId && !ennemyPlayer.turn) {
+    } else {
+        setTurnMessage('alert-success', 'alert-info', `C'est au tour de <b>${ennemyUsername}</b> de jouer`)
+        player.turn = false;
+    }
+});
+
+let roleArray = ['Loup-Garou', 'Villageois 1', 'Villageois 2', 'Voyante', 'Sorcière'];
+
+
+function firstTurn(ennemyPlayer){
+    console.log("premier  tour", ennemyPlayer);
+    if (ennemyPlayer.socketId !== player.socketId && !ennemyPlayer.turn) {
+        if(ennemyPlayer.role == 'Loup-Garou'){
+            loupClass.classList.add('d-none')
+        }
+        if(ennemyPlayer.role == 'Voyante'){
+            voyanteClass.classList.add('d-none')
+
+        }
+        if(ennemyPlayer.role == 'Sorcière'){
+            sorciereClass.classList.add('d-none')
+
+        }
+        if(ennemyPlayer.role =='Villageois 1'){
+            villageoisClass.classList.add('d-none')
+
+        }  
+        if(ennemyPlayer.role =='Villageois 2'){
+            villageoisClass.classList.add('d-none')
+
+        }  
+    }
+}
+
+
+function dealRolePlayers(players){
+    let roleArray = ['Loup-Garou', 'Villageois 1', 'Villageois 2', 'Voyante', 'Sorcière'];
+    players.forEach(p =>  {
+        p.role = dealRoleWolf(roleArray)
+        console.log("player role", p.role);
+
+        const index = roleArray.indexOf(p.role);
+        if (index !== -1) {
+            roleArray.splice(index, 1);
+        }
+    })
+    console.log("fin traitement", players);
+    return players;
+
+}
+
+function dealRoleWolf(roleArray){
+    console.log("la liste", roleArray, roleArray.length)
+    const randomRole = roleArray[Math.floor(Math.random() * roleArray.length)];
+    return randomRole;
 
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 socket.on('play', (ennemyPlayer) => {
-
+    console.log("la partie est lancée ?")
     if (ennemyPlayer.socketId !== player.socketId && !ennemyPlayer.turn) {
         const playedCell = document.getElementById(`${ennemyPlayer.playedCell}`);
 
@@ -263,16 +347,48 @@ function restartGame(players = null) {
     }
 }
 
+
 function showRestartArea() {
     if (player.host) {
         restartArea.classList.remove('d-none');
     }
 }
 
+
+
 function setTurnMessage(classToRemove, classToAdd, html) {
     turnMsg.classList.remove(classToRemove);
     turnMsg.classList.add(classToAdd);
     turnMsg.innerHTML = html;
+}
+
+const joinRoomTicTact = function () {
+    if (usernameInput.value !== "") {
+        player.username = usernameInput.value;
+        player.socketId = socket.id;
+        player.roomId = this.dataset.room;
+        
+        socket.emit('playerData', player);
+
+        userCard.hidden = true;
+        waitingArea.classList.remove('d-none');
+        roomsCard.classList.add('d-none');
+    }
+}
+
+const joinRoomWolf = function () {
+    console.log("c'est parti les loups");
+    if (usernameInput.value !== "") {
+        player.username = usernameInput.value;
+        player.socketId = socket.id;
+        player.roomId = this.dataset.room;
+        
+        socket.emit('playerDataWolf', player);
+
+        userCard.hidden = true;
+        waitingArea.classList.remove('d-none');
+        roomsCard.classList.add('d-none');
+    }
 }
 
 function calculateEquality() {
@@ -287,6 +403,11 @@ function calculateEquality() {
 
     return equality;
 }
+
+
+
+
+
 
 function calculateWin(playedCell, symbol = player.symbol) {
     let row = playedCell[5];
@@ -360,34 +481,5 @@ function calculateWin(playedCell, symbol = player.symbol) {
                 return win;
             }
         }
-    }
-}
-
-const joinRoomTicTact = function () {
-    if (usernameInput.value !== "") {
-        player.username = usernameInput.value;
-        player.socketId = socket.id;
-        player.roomId = this.dataset.room;
-        
-        socket.emit('playerData', player);
-
-        userCard.hidden = true;
-        waitingArea.classList.remove('d-none');
-        roomsCard.classList.add('d-none');
-    }
-}
-
-const joinRoomWolf = function () {
-    console.log("c'est parti les loups");
-    if (usernameInput.value !== "") {
-        player.username = usernameInput.value;
-        player.socketId = socket.id;
-        player.roomId = this.dataset.room;
-        
-        socket.emit('playerDataWolf', player);
-
-        userCard.hidden = true;
-        waitingArea.classList.remove('d-none');
-        roomsCard.classList.add('d-none');
     }
 }

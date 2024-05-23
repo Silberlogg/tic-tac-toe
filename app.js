@@ -67,19 +67,7 @@ io.on('connection', (socket) => {
 
 
         if (room.players.length === 2) {
-            let roleArray = ['Loup-Garou', 'Villageois 1', 'Villageois 2', 'Voyante', 'Sorcière'];
-            room.players.forEach(p =>  {
-                console.log("player", p);
-                p.role = dealRoleWolf(roleArray)
-                console.log("player role", p.role);
 
-                const index = roleArray.indexOf(p.role);
-                if (index !== -1) {
-                    roleArray.splice(index, 1);
-                }
-            }
-
-            )
             console.log("la partie est lancée");
             io.to(room.id).emit('start game wolf', room.players);
         }
@@ -125,6 +113,11 @@ io.on('connection', (socket) => {
     socket.on('play', (player) => {
         console.log(`[play] ${player.username}`);
         io.to(player.roomId).emit('play', player);
+    });
+
+    socket.on('playWolf', (player) => {
+        console.log(`[playWolf] ${player.username}`);
+        io.to(player.roomId).emit('playWolf', player);
     });
 
     socket.on('play again', (roomId) => {
@@ -173,12 +166,4 @@ function createRoom(player, isWolfRoom) {
 
 function roomId() {
     return Math.random().toString(36).substr(2, 9);
-}
-
-function dealRoleWolf(roleArray){
-    console.log("la liste", roleArray, roleArray.length)
-    const randomRole = roleArray[Math.floor(Math.random() * roleArray.length)];
-    console.log("role" , randomRole);
-    return randomRole;
-
 }
