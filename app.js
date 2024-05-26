@@ -39,10 +39,8 @@ let wolfRooms = [];
 
 io.on('connection', (socket) => {
     console.log(`[connection] ${socket.id}`);
-
     socket.on('playerDataWolf', (playerWolf) => {
         console.log(`[playerDataWolf] ${playerWolf.username}`);
-
         let room = null;
 
         if (!playerWolf.roomId) {
@@ -54,28 +52,16 @@ io.on('connection', (socket) => {
             if (room === undefined) {
                 return;
             }
-
             playerWolf.roomId = room.id;
             room.players.push(playerWolf);
         }
-
         socket.join(room.id);
-
         io.to(socket.id).emit('join room', room.id);
-
-
-
-
-        if (room.players.length === 2) {
-
-            console.log("la partie est lancée");
-            io.to(room.id).emit('start game wolf', room.players);
+        if (room.players.length === 5) {
+            dealRolePlayers(room.players);
+            room.players.forEach(p => io.to(room.id).emit('start game wolf', p, room.players));
         }
     });
-
-
-
-
 
     socket.on('playerData', (player) => {
         console.log(`[playerDataTicTac] ${player.username}`);
@@ -100,7 +86,9 @@ io.on('connection', (socket) => {
 
         io.to(socket.id).emit('join room', room.id, false);
 
-        if (room.players.length === 2) {
+        if (room.players.length === 5) {
+            socket.join(room.players);
+            room.players
             io.to(room.id).emit('start game', room.players);
         }
     });
@@ -110,6 +98,11 @@ io.on('connection', (socket) => {
         io.to(socket.id).emit('list rooms', rooms, wolfRooms);
     });
 
+    socket.on('get rooms wolf', () => {
+        console.log("chambre", wolfRooms);
+        io.to(socket.id).emit('list rooms wolf', wolfRooms);
+    });
+
     socket.on('play', (player) => {
         console.log(`[play] ${player.username}`);
         io.to(player.roomId).emit('play', player);
@@ -117,6 +110,7 @@ io.on('connection', (socket) => {
 
     socket.on('playWolf', (player) => {
         console.log(`[playWolf] ${player.username}`);
+        rooms.filter()
         io.to(player.roomId).emit('playWolf', player);
     });
 
@@ -141,12 +135,27 @@ io.on('connection', (socket) => {
             })
         })
     });
+    socket.on('roleAssigned', ( player, players ) => {
+        console.log(`[roleAssigned] ${player}`);
+
+       io.to(player.socketId).emit('roleUpdate', player, players)
+    })
+
+    socket.on('firstNightWolf' , (player) => {
+        console.log('[firstNightWolf]',  io.sockets.adapter.rooms);
+        array = Array.from(io.sockets.adapter.rooms, ([name, value]) => ({ name, value }));
+        console.log('[firstNightWolfArray]',  array);
+        console.log('[wolfRooms]',  wolfRooms);
+
+
+        io.to(player.socketId).emit('nightLoup', array, player, wolfRooms)
+    })
+
+    socket.on('firstNightVillagers' , (player) => {
+        io.to(player.socketId).emit('nightVillage')
+    
+    })
 });
-
-
-
-
-
 
 
 function createRoom(player, isWolfRoom) {
@@ -166,4 +175,46 @@ function createRoom(player, isWolfRoom) {
 
 function roomId() {
     return Math.random().toString(36).substr(2, 9);
+}
+
+function dealRolePlayers(players){
+    let roleArray = ['Loup-Garou', 'Villageois 1', 'Villageois 2', 'Voyante', 'Sorciere'];
+    players.forEach(p =>  {
+        p.role = dealRoleWolf(roleArray)
+        if(p.role == 'Loup-Garou'){
+            p.src="role-loup";
+            p.roleId = 1;
+        }
+        if(p.role == 'Villageois 1'){
+            p.src="role-villageois";
+            p.roleId = 3;
+        }
+        if(p.role == 'Villageois 2'){
+            p.src="role-villageois";
+            p.roleId = 4;
+        }
+        if(p.role == 'Voyante'){
+            p.src="role-voyante";
+            p.roleId = 2;
+        }
+        if(p.role == 'Sorciere'){
+            p.src="role-sorciere";
+            p.roleId = 5;
+        }
+        console.log("player role", p.role);
+
+        const index = roleArray.indexOf(p.role);
+        if (index !== -1) {
+            roleArray.splice(index, 1);
+        }
+    })
+    console.log("fin traitement", players);
+    return players;
+
+}
+
+function dealRoleWolf(roleArray){
+    const randomRole = roleArray[Math.floor(Math.random() * roleArray.length)];
+    return randomRole;
+
 }

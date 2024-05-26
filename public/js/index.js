@@ -3,11 +3,14 @@ const player = {
     playedCell: "",
     roomId: null,
     role: "",
+    roleId: Number,
     username: "",
     socketId: "",
     symbol: "X",
     turn: false,
-    win: false
+    win: false,
+    src: "",
+    actif: true
 };
 
 const socket = io();
@@ -36,10 +39,14 @@ const linkToShare = document.getElementById('link-to-share');
 
 const loupClass = document.getElementById('role-loup');
 const voyanteClass = document.getElementById('role-voyante');
-const villageoisClass = document.getElementById('role-villageois');
+const villageoisClass1 = document.getElementById('role-villageois');
+const villageoisClass2 = document.getElementById('role-villageois2');
 const sorciereClass = document.getElementById('role-sorciere');
-
-
+const mainDiv = document.getElementById('main-div');
+const playerContainerDiv = document.getElementById('players-container');
+const cellierDiv = document.getElementById('cellier');
+const loupNuitDiv = document.getElementById('loupNuit');
+const dodoDiv = document.getElementById('dodo');
 
 let ennemyUsername = "";
 
@@ -47,17 +54,20 @@ socket.emit('get rooms');
 socket.on('list rooms', (rooms,wolfRooms) => {
     loupClass.classList.add('d-none');
     voyanteClass.classList.add('d-none');
-    villageoisClass.classList.add('d-none');
+    villageoisClass1.classList.add('d-none');
+    villageoisClass2.classList.add('d-none');
     sorciereClass.classList.add('d-none');
-
+    playerContainerDiv.classList.add('d-none');
+    cellierDiv.classList.add('d-none');
+    loupNuitDiv.classList.add('d-none');
+    dodoDiv.classList.add('d-none');
 
     if(document.URL.includes("tic")){
     let html = "";
-    console.log("rooms", rooms);
     if (rooms.length > 0) {
-        console.log("salle du loup", rooms.wolf);
         rooms.forEach(room => {
             if (room.players.length !== 2) {
+                console.log("Tic tAC ", room.players.length);
                 html += `<li class="list-group-item d-flex justify-content-between">
                             <p class="p-0 m-0 flex-grow-1 fw-bold">Salon de ${room.players[0].username} - ${room.id} jeux : tic-tac-toe</p>
                             <button class="btn btn-sm btn-success join-room" data-room="${room.id}">Rejoindre</button>
@@ -74,10 +84,10 @@ socket.on('list rooms', (rooms,wolfRooms) => {
     }
     } else if(document.URL.includes("loup")){
         let html = "";
-        console.log("wolfRooms", wolfRooms);
         if (wolfRooms.length > 0) {
             wolfRooms.forEach(room => {
-                if (room.players.length !== 2) {
+                console.log("Room Loup ", room.players.length);
+                if (room.players.length !== 5) {
                     html += `<li class="list-group-item d-flex justify-content-between">
                                 <p class="p-0 m-0 flex-grow-1 fw-bold">Salon de ${room.players[0].username} - ${room.id} jeux : Loup-garou</p>
                                 <button class="btn btn-sm btn-success join-wolfRoom" data-room="${room.id}">Rejoindre</button>
@@ -121,10 +131,10 @@ $("#form").on('submit', function (e) {
 });
 
 $("#formWolf").on('submit', function (e) {
-    console.log("coucou le loup")
     e.preventDefault();
-
+    
     player.username = usernameInput.value;
+
 
     if (roomId) {
         player.roomId = roomId;
@@ -143,17 +153,6 @@ $("#formWolf").on('submit', function (e) {
     socket.emit('playerDataWolf', player);
 });
 
-$(".cell").on("click", function (e) {
-    const playedCell = this.getAttribute('id');
-    if (this.innerText === "" && player.turn) {
-        player.playedCell = playedCell;
-        this.innerText = player.symbol;
-        player.win = calculateWin(playedCell);
-        player.turn = false;
-        socket.emit('play', player);
-    }
-});
-
 $("#restart").on('click', function () {
     restartGame();
 })
@@ -163,105 +162,126 @@ socket.on('join room', (roomId) => {
     linkToShare.innerHTML = `<a href="${window.location.href}?room=${player.roomId}" target="_blank">${window.location.href}?room=${player.roomId}</a>`;
 });
 
+socket.on('roleUpdate', ( data, players ) => {
+    console.log(`[roleUpdate] ${JSON.stringify(data)}`);
+    mainDiv.hidden;
+    playerContainerDiv.classList.remove('d-none');
+    document.getElementById('player1-username').innerHTML = "<p id=\"player1-username\" class=\"username\"> Ton username: " + data.username + "</p>";
+    if (data.roleId == 1) {
+        loupClass.classList.remove('d-none');
+    } else if(data.roleId == 2){
+        voyanteClass.classList.remove('d-none');
+    } else if(data.roleId == 3){
+        villageoisClass1.classList.remove('d-none');
+    } else if(data.roleId == 4){
+        villageoisClass2.classList.remove('d-none');
+    } else if(data.roleId == 5){
+        sorciereClass.classList.remove('d-none');
+    }
+    setTimeout(startFirstDay, 5000, players);
+});
+
+function startFirstDay(players){
+    console.log("début de nuit")
+    cellierDiv.classList.remove('d-none');
+    playerContainerDiv.classList.add('d-none');
+
+    setTimeout(startGame, 5000, players);
+}
+
+function startGame(players){
+    cellierDiv.classList.add('d-none');
+    players.forEach(player => {
+        if(player.roleId == 1){
+            socket.emit('firstNightWolf', player);
+        } else {
+            socket.emit('firstNightVillagers', player);
+        }
+    })
+}
+
+socket.on('nightLoup', (roomsApi, player, wolfRooms) => {
+    console.log('nightLoup', roomsApi);
+    console.log('nightLoup roomIdPlayer', player.roomId);
+    console.log('list rooms wolf', wolfRooms);
+    let OtherVillagers = [];
+        wolfRooms.forEach(r => {
+            console.log('r.id', r.id);
+            console.log('player.roomId', player.roomId);
+            console.log('player.socketId', player.socketId);
+            if(r.id == player.roomId){
+                console.log('Je suis passé');
+                OtherVillagers = r.players.filter(p => {
+                    console.log('p.socketId', p.socketId);
+                    console.log('player.socketId', player.socketId);
+                    return p.socketId !== player.socketId;
+                });
+            }
+        });
+
+    console.log('OtherVillagers', OtherVillagers);   
+    loupNuitDiv.classList.remove('d-none');
+    
+});
+
+socket.on('nightVillage', (player) => {
+    console.log('nightVillage', player)
+    dodoDiv.classList.remove('d-none');
+});
+
 
 socket.on('start game', (players) => {
     console.log(players)
     startGame(players);
 });
 
-socket.on('start game wolf', (players) => {
-    console.log("loup", players)
-    startGameWolf(players);
+socket.on('start game wolf', (player, players) => {
+    startGameWolf(player, players);
 });
 
-function startGameWolf(players){
-    players = dealRolePlayers(players);
-    loupClass.classList.remove('d-none');
+function startGameWolf(player, players){
     restartArea.classList.add('d-none');
     waitingArea.classList.add('d-none');
-    loupClass.classList.remove('d-none');
+    loupClass.classList.add('d-none');
     turnMsg.classList.remove('d-none');
-
-    const ennemyPlayer = players.find(p => p.socketId != player.socketId);
-    console.log("l'ennemi", ennemyPlayer);
-
-    ennemyUsername = ennemyPlayer.username;
-    socket.emit('playWolf', player);
-
-/*     if (player.host && player.turn) {
-        //setTurnMessage('alert-info', 'alert-success', "C'est ton tour de jouer");
-    } else {
-        //setTurnMessage('alert-success', 'alert-info', `C'est au tour de <b>${ennemyUsername}</b> de jouer`);
-    } */
-
-
+    console.log("envoi", player)
+    firstTurn(player, players);
 
 }
 
-socket.on('playWolf', (ennemyPlayer) => {
-    console.log("la partie loup-garou lancée", ennemyPlayer);
-    firstTurn(ennemyPlayer);
-    if (ennemyPlayer.socketId !== player.socketId && !ennemyPlayer.turn) {
-    } else {
-        setTurnMessage('alert-success', 'alert-info', `C'est au tour de <b>${ennemyUsername}</b> de jouer`)
-        player.turn = false;
-    }
-});
+function firstTurn(player, players){
+    console.log("combien de joueurs ? ", player)        
+    socket.emit('roleAssigned', player, players);
+}
 
-let roleArray = ['Loup-Garou', 'Villageois 1', 'Villageois 2', 'Voyante', 'Sorcière'];
+function setTurnMessage(classToRemove, classToAdd, html) {
+    turnMsg.classList.remove(classToRemove);
+    turnMsg.classList.add(classToAdd);
+    turnMsg.innerHTML = html;
+}
 
 
-function firstTurn(ennemyPlayer){
-    console.log("premier  tour", ennemyPlayer);
-    if (ennemyPlayer.socketId !== player.socketId && !ennemyPlayer.turn) {
-        if(ennemyPlayer.role == 'Loup-Garou'){
-            loupClass.classList.add('d-none')
-        }
-        if(ennemyPlayer.role == 'Voyante'){
-            voyanteClass.classList.add('d-none')
 
-        }
-        if(ennemyPlayer.role == 'Sorcière'){
-            sorciereClass.classList.add('d-none')
+const joinRoomWolf = function () {
+    if (usernameInput.value !== "") {
+        player.username = usernameInput.value;
+        player.socketId = socket.id;
+        player.roomId = this.dataset.room;
+        
+        
+        socket.emit('playerDataWolf', player);
 
-        }
-        if(ennemyPlayer.role =='Villageois 1'){
-            villageoisClass.classList.add('d-none')
-
-        }  
-        if(ennemyPlayer.role =='Villageois 2'){
-            villageoisClass.classList.add('d-none')
-
-        }  
+        userCard.hidden = true;
+        waitingArea.classList.remove('d-none');
+        roomsCard.classList.add('d-none');
     }
 }
 
+socket.on('play again', (players) => {
+    restartGame(players);
+})
 
-function dealRolePlayers(players){
-    let roleArray = ['Loup-Garou', 'Villageois 1', 'Villageois 2', 'Voyante', 'Sorcière'];
-    players.forEach(p =>  {
-        p.role = dealRoleWolf(roleArray)
-        console.log("player role", p.role);
-
-        const index = roleArray.indexOf(p.role);
-        if (index !== -1) {
-            roleArray.splice(index, 1);
-        }
-    })
-    console.log("fin traitement", players);
-    return players;
-
-}
-
-function dealRoleWolf(roleArray){
-    console.log("la liste", roleArray, roleArray.length)
-    const randomRole = roleArray[Math.floor(Math.random() * roleArray.length)];
-    return randomRole;
-
-}
-
-
-socket.on('play', (ennemyPlayer) => {
+/* socket.on('play', (ennemyPlayer) => {
     console.log("la partie est lancée ?")
     if (ennemyPlayer.socketId !== player.socketId && !ennemyPlayer.turn) {
         const playedCell = document.getElementById(`${ennemyPlayer.playedCell}`);
@@ -299,13 +319,10 @@ socket.on('play', (ennemyPlayer) => {
         setTurnMessage('alert-success', 'alert-info', `C'est au tour de <b>${ennemyUsername}</b> de jouer`)
         player.turn = false;
     }
-});
+}); */
 
-socket.on('play again', (players) => {
-    restartGame(players);
-})
 
-function startGame(players) {
+/* function startGame(players) {
     restartArea.classList.add('d-none');
     waitingArea.classList.add('d-none');
     gameCard.classList.remove('d-none');
@@ -319,9 +336,9 @@ function startGame(players) {
     } else {
         setTurnMessage('alert-success', 'alert-info', `C'est au tour de <b>${ennemyUsername}</b> de jouer`);
     }
-}
+} */
 
-function restartGame(players = null) {
+/* function restartGame(players = null) {
     if (player.host && !players) {
         player.turn = true;
         socket.emit('play again', player.roomId);
@@ -345,24 +362,15 @@ function restartGame(players = null) {
     if (players) {
         startGame(players);
     }
-}
+} */
 
-
-function showRestartArea() {
+/* function showRestartArea() {
     if (player.host) {
         restartArea.classList.remove('d-none');
     }
-}
+} */
 
-
-
-function setTurnMessage(classToRemove, classToAdd, html) {
-    turnMsg.classList.remove(classToRemove);
-    turnMsg.classList.add(classToAdd);
-    turnMsg.innerHTML = html;
-}
-
-const joinRoomTicTact = function () {
+/* const joinRoomTicTact = function () {
     if (usernameInput.value !== "") {
         player.username = usernameInput.value;
         player.socketId = socket.id;
@@ -374,24 +382,9 @@ const joinRoomTicTact = function () {
         waitingArea.classList.remove('d-none');
         roomsCard.classList.add('d-none');
     }
-}
+} */
 
-const joinRoomWolf = function () {
-    console.log("c'est parti les loups");
-    if (usernameInput.value !== "") {
-        player.username = usernameInput.value;
-        player.socketId = socket.id;
-        player.roomId = this.dataset.room;
-        
-        socket.emit('playerDataWolf', player);
-
-        userCard.hidden = true;
-        waitingArea.classList.remove('d-none');
-        roomsCard.classList.add('d-none');
-    }
-}
-
-function calculateEquality() {
+/* function calculateEquality() {
     let equality = true;
     const cells = document.getElementsByClassName('cell');
 
@@ -403,11 +396,6 @@ function calculateEquality() {
 
     return equality;
 }
-
-
-
-
-
 
 function calculateWin(playedCell, symbol = player.symbol) {
     let row = playedCell[5];
@@ -482,4 +470,15 @@ function calculateWin(playedCell, symbol = player.symbol) {
             }
         }
     }
-}
+
+    $(".cell").on("click", function (e) {
+        const playedCell = this.getAttribute('id');
+        if (this.innerText === "" && player.turn) {
+            player.playedCell = playedCell;
+            this.innerText = player.symbol;
+            player.win = calculateWin(playedCell);
+            player.turn = false;
+            socket.emit('play', player);
+        }
+    }); 
+}*/

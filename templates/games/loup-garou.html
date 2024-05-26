@@ -38,7 +38,7 @@
     </nav>
 
 
-    <div class="container mt-5">
+    <div class="container mt-5" id="main-div">
         <div class="row">
             <div class="col-sm-12 col-md-6 offset-md-3">
 
@@ -83,6 +83,52 @@
                     </div>
                 </div>
 
+
+
+    <!-- Conteneur pour les rôles des joueurs -->
+    <div id="players-container">
+        <p id="player1-role" class="role-text d-none"><Table>Ton rôle pour la partie</Table></p>
+        <!-- Exemple de structure pour un joueur -->
+        <div id="player1-container" class="player-container">
+            <img id="role-loup" name="Loup-Garou" src="/images/loup.png"></img>
+            <img id="role-voyante" name="Voyante" src="/images/voyante.png"></img>
+            <img id="role-villageois" name="Villageois 1" src="/images/villageois.png"></img>
+            <img id="role-villageois2" name="Villageois 2" src="/images/villageois.png"></img>
+            <img id="role-sorciere" name="Sorcière" src="/images/sorciere.png"></img>            
+            <p id="player1-username" class="username"></p>
+        </div>
+        <p id="player1-role" class="role-text d-none"><Table>Retiens le bien ! Début de partie dans 10 secondes</Table></p>
+    </div>
+
+    <div id="cellier">
+        <p id="player1-role" class="role-text d-none"><Table>Bienvenue à Thiercelleux</Table></p>
+        <p id="player1-role" class="role-text d-none"><Table>C'est la fête mais la nuit tombe bientôt réveillant un monstre terrible...</Table></p>
+        <!-- Exemple de structure pour un joueur -->
+        <div id="player1-container" class="player-container">
+            <img id="img-village" width="800" height="500" name="cellier" src="/images/cellier.png"></img>          
+        </div>
+    </div>
+
+    
+    <div id="loupNuit">
+        <p id="player1-role" class="role-text d-none"><Table>La nuit réveille en vous</Table></p>
+        <p id="player1-role" class="role-text d-none"><Table>Des appétits féroces...</Table></p>
+        <p id="player1-role" class="role-text d-none"><Table>Quel villageois subira votre rage ?</Table></p>
+        <div id="player1-container" class="player-container">
+            <img id="img-loup-nuit" width="800" height="500" name="loupNuit" src="/images/imageLoupNuit1.png"></img>          
+        </div>
+    </div>
+
+    <div id="dodo">
+        <p id="player1-role" class="role-text d-none"><Table>Vous dormez tranquillement</Table></p>
+        <p id="player1-role" class="role-text d-none"><Table>du moins pour l'instant...</Table></p>
+        <div id="player1-container" class="player-container">
+            <img id="img-loup-nuit" width="800" height="500" name="loupNuit" src="/images/dodo.png"></img>          
+        </div>
+    </div>
+
+
+
                 <div class="card d-none" id="game-card">
                     <div class="card-header">
                         Tic-tac-toe
@@ -116,29 +162,13 @@
 
             </div>
         </div>
-
-        <div id="class-loup">
-            <div class="d-flex justify-content-center align-items-center vh-100">
-                <div class="full-screen-div d-flex justify-content-center align-items-center">
-                    Contenu de la div
-                </div>
-            </div>
-        </div>
     </div>
-
-    <div id="role-loup" src="/images/loup.png"></div>
-
-    <div id="role-voyante" src="/images/voyante.png"></div>
-
-    <div id="role-villageois" src="/images/villageois.png"></div>
-
-    <div id="role-sorciere" src="/images/sorciere.png"></div>
-
 
     <script src="/jquery/jquery.min.js"></script>
     <script src="/bootstrap/js/bootstrap.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/index.js"></script>
+
 </body>
 
 </html>
