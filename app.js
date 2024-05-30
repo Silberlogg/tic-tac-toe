@@ -40,26 +40,36 @@ let wolfRooms = [];
 io.on('connection', (socket) => {
     console.log(`[connection] ${socket.id}`);
     socket.on('playerDataWolf', (playerWolf) => {
-        console.log(`[playerDataWolf] ${playerWolf.username}`);
         let room = null;
 
+        // On créé le salon si pas de salon déja créé
         if (!playerWolf.roomId) {
             room = createRoom(playerWolf, true);
             console.log(`[create room ] - ${room.id} - ${playerWolf.username}`);
         } else {
+            // wolfRooms on prend tous les salon dispo
+            // le salon réellement occupé par le joueur
             room = wolfRooms.find(r => r.id === playerWolf.roomId);
 
             if (room === undefined) {
                 return;
             }
+
             playerWolf.roomId = room.id;
+
+            // On ajoute à la liste de joueurs pour ce salon 
+            //le joueur qui vient de s'inscrire
             room.players.push(playerWolf);
         }
+        // On demande au serveur de retenir une valeur particulière
         socket.join(room.id);
+
+        // On transmet au salon son identifiant son identifiant unique
         io.to(socket.id).emit('join room', room.id);
+        // Si 5 joueurs on lance partie
         if (room.players.length === 5) {
             dealRolePlayers(room.players);
-            room.players.forEach(p => io.to(room.id).emit('start game wolf', p, room.players));
+            room.players.forEach(player => io.to(room.id).emit('start game wolf', player, room.players));
         }
     });
 
@@ -136,24 +146,30 @@ io.on('connection', (socket) => {
         })
     });
     socket.on('roleAssigned', ( player, players ) => {
-        console.log(`[roleAssigned] ${player}`);
-
-       io.to(player.socketId).emit('roleUpdate', player, players)
+        // Pour chaque joueur on envoie un évènement individualisé
+       io.to(player.socketId).emit('displayRole', player, players)
     })
 
     socket.on('firstNightWolf' , (player) => {
-        console.log('[firstNightWolf]',  io.sockets.adapter.rooms);
-        array = Array.from(io.sockets.adapter.rooms, ([name, value]) => ({ name, value }));
-        console.log('[firstNightWolfArray]',  array);
-        console.log('[wolfRooms]',  wolfRooms);
+        // On demande tous les salon disponibles
+        allRooms = Array.from(io.sockets.adapter.rooms, ([name, value]) => ({ name, value }));
 
 
-        io.to(player.socketId).emit('nightLoup', array, player, wolfRooms)
+        io.to(player.socketId).emit('nightLoup', player, wolfRooms)
     })
 
     socket.on('firstNightVillagers' , (player) => {
         io.to(player.socketId).emit('nightVillage')
     
+    })
+
+    socket.on('endNight' , (villager) => {
+        io.to(villager.socketId).emit('endGameForVillager', villager)
+    })
+
+    // évènement personnalisé pour la sorcière
+    socket.on('endNightSorcierePower' , (villager, sorcierePlayer) => {
+        io.to(sorcierePlayer.socketId).emit('sorcierePower', villager, sorcierePlayer)
     })
 });
 
@@ -177,6 +193,7 @@ function roomId() {
     return Math.random().toString(36).substr(2, 9);
 }
 
+// Affecter rôle à chaque joueur inscrit
 function dealRolePlayers(players){
     let roleArray = ['Loup-Garou', 'Villageois 1', 'Villageois 2', 'Voyante', 'Sorciere'];
     players.forEach(p =>  {
@@ -200,9 +217,11 @@ function dealRolePlayers(players){
         if(p.role == 'Sorciere'){
             p.src="role-sorciere";
             p.roleId = 5;
+            p.sorcierePowerActive = true;
         }
         console.log("player role", p.role);
 
+        // on enlève l'index utilisé
         const index = roleArray.indexOf(p.role);
         if (index !== -1) {
             roleArray.splice(index, 1);
@@ -213,6 +232,7 @@ function dealRolePlayers(players){
 
 }
 
+// génere aléatoirement un index
 function dealRoleWolf(roleArray){
     const randomRole = roleArray[Math.floor(Math.random() * roleArray.length)];
     return randomRole;

@@ -90,17 +90,19 @@
         <p id="player1-role" class="role-text d-none"><Table>Ton rôle pour la partie</Table></p>
         <!-- Exemple de structure pour un joueur -->
         <div id="player1-container" class="player-container">
-            <img id="role-loup" name="Loup-Garou" src="/images/loup.png"></img>
-            <img id="role-voyante" name="Voyante" src="/images/voyante.png"></img>
-            <img id="role-villageois" name="Villageois 1" src="/images/villageois.png"></img>
-            <img id="role-villageois2" name="Villageois 2" src="/images/villageois.png"></img>
-            <img id="role-sorciere" name="Sorcière" src="/images/sorciere.png"></img>            
+            <h1>La journée a commencé</h1>
+            <img id="role-loup" width="800" height="500" name="Loup-Garou" src="/images/loup.png"></img>
+            <img id="role-voyante" width="800" height="500" name="Voyante" src="/images/voyante.png"></img>
+            <img id="role-villageois" width="800" height="500" name="Villageois 1" src="/images/villageois.png"></img>
+            <img id="role-villageois2" width="800" height="500" name="Villageois 2" src="/images/villageois.png"></img>
+            <img id="role-sorciere" width="800" height="500" name="Sorcière" src="/images/sorciere.png"></img>            
             <p id="player1-username" class="username"></p>
         </div>
         <p id="player1-role" class="role-text d-none"><Table>Retiens le bien ! Début de partie dans 10 secondes</Table></p>
     </div>
 
     <div id="cellier">
+        <h1>La journée a commencé</h1>
         <p id="player1-role" class="role-text d-none"><Table>Bienvenue à Thiercelleux</Table></p>
         <p id="player1-role" class="role-text d-none"><Table>C'est la fête mais la nuit tombe bientôt réveillant un monstre terrible...</Table></p>
         <!-- Exemple de structure pour un joueur -->
@@ -111,19 +113,50 @@
 
     
     <div id="loupNuit">
+        <h1>La nuit est tombée</h1>
         <p id="player1-role" class="role-text d-none"><Table>La nuit réveille en vous</Table></p>
         <p id="player1-role" class="role-text d-none"><Table>Des appétits féroces...</Table></p>
         <p id="player1-role" class="role-text d-none"><Table>Quel villageois subira votre rage ?</Table></p>
         <div id="player1-container" class="player-container">
             <img id="img-loup-nuit" width="800" height="500" name="loupNuit" src="/images/imageLoupNuit1.png"></img>          
         </div>
+        <div id="button-container"></div>
     </div>
 
     <div id="dodo">
+        <h1>La nuit est tombée</h1>
         <p id="player1-role" class="role-text d-none"><Table>Vous dormez tranquillement</Table></p>
         <p id="player1-role" class="role-text d-none"><Table>du moins pour l'instant...</Table></p>
         <div id="player1-container" class="player-container">
             <img id="img-loup-nuit" width="800" height="500" name="loupNuit" src="/images/dodo.png"></img>          
+        </div>
+    </div>
+
+    <div id="dodoLoup">
+        <h1>La nuit est tombée</h1>
+        <p id="player1-role" class="role-text d-none"><Table>Vous avez bien mangé</Table></p>
+        <p id="player1-role" class="role-text d-none"><Table>C'est le ventre bien rempli que vous vous rendormez</Table></p>
+        <div id="player1-container" class="player-container">
+            <img id="img-loup-nuit" width="800" height="500" name="dodoLoup" src="/images/loupQuiDort.png"></img>          
+        </div>
+    </div>
+
+    <div id="sorcierePower">
+        <h1>La nuit est tombée</h1>
+        <p id="player1-role" class="role-text d-none"><Table>Un villageois a été dévoré cette nuit</Table></p>
+        <p id="player1-role" class="role-text d-none"><Table>Cette âme est elle digne de recevoir votre pouvoir ?</Table></p>
+        <div id="player1-container" class="player-container">
+            <img id="img-loup-sorciere" width="800" height="500" name="sorcierePower" src="/images/sorcierePower.png"></img>          
+        </div>
+        <div id="button-container-sorciere"></div>
+    </div>
+
+    <div id="mangeParLoup">
+        <h1>La nuit est tombée et le jour ne reviendra jamais pour vous</h1>
+        <p id="player1-role" class="role-text d-none"><Table>Vous avez été mangé par le loup</Table></p>
+        <p id="player1-role" class="role-text d-none"><Table>Vous serez peut-être vengé peut-être...</Table></p>
+        <div id="player1-container" class="player-container">
+            <img id="img-mange-par-loup" width="800" height="500" name="mangeLoup" src="/images/mangeParLoup.png"></img>          
         </div>
     </div>
 
