@@ -152,9 +152,6 @@ io.on('connection', (socket) => {
 
     socket.on('firstNightWolf' , (player) => {
         // On demande tous les salon disponibles
-        allRooms = Array.from(io.sockets.adapter.rooms, ([name, value]) => ({ name, value }));
-
-
         io.to(player.socketId).emit('nightLoup', player, wolfRooms)
     })
 
@@ -164,12 +161,32 @@ io.on('connection', (socket) => {
     })
 
     socket.on('endNight' , (villager) => {
-        io.to(villager.socketId).emit('endGameForVillager', villager)
+        console.log(`[endNightVillager]`, villager);
+        console.log(`[endNightWolfRooms]`, wolfRooms);
+
+        let room;
+        wolfRooms.forEach(r => {
+            if(r.roomId == villager.roomId){
+                room=r; 
+            }
+        })
+        console.log(`[room wolfRooms]`, wolfRooms);
+        console.log(`[room wolfRooms[0]]`, wolfRooms[0]);
+
+        wolfRooms[0].players.forEach(player => {
+            console.log("envoi", player);
+            io.to(player.socketId).emit('endGameForVillager', wolfRooms[0].players, villager)
+        });
     })
 
     // évènement personnalisé pour la sorcière
-    socket.on('endNightSorcierePower' , (villager, sorcierePlayer) => {
-        io.to(sorcierePlayer.socketId).emit('sorcierePower', villager, sorcierePlayer)
+    socket.on('endNightSorcierePower' , (villager, sorcierePlayer, voyantePlayer) => {
+        io.to(sorcierePlayer.socketId).emit('sorcierePower', villager, sorcierePlayer, voyantePlayer)
+    })
+
+    socket.on('roleVoyante' , (voyantePlayer) => {
+        console.log(`[roleVoyante] ${voyantePlayer}`);
+        io.to(voyantePlayer.socketId).emit('launchVoyantePower', voyantePlayer, wolfRooms)
     })
 });
 

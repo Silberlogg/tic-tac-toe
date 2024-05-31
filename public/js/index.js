@@ -12,6 +12,9 @@ const player = {
     sorcierePowerActive: false
 };
 
+let eventOneTriggered = false;
+let eventTwoTriggered = false;
+
 const socket = io();
 
 const queryString = window.location.search;
@@ -44,6 +47,11 @@ const dodoDiv = document.getElementById('dodo');
 const dodoLoupDiv = document.getElementById('dodoLoup');
 const reveilSorciereDiv = document.getElementById('sorcierePower');
 const mangeParLoup = document.getElementById('mangeParLoup');
+const voyantePower = document.getElementById('voyantePower');
+const village = document.getElementById('village');
+
+
+// Variables pour suivre l'état des événements
 
 let ennemyUsername = "";
 
@@ -65,6 +73,8 @@ socket.on('list rooms', (rooms,wolfRooms) => {
     dodoLoupDiv.classList.add('d-none');
     reveilSorciereDiv.classList.add('d-none');
     mangeParLoup.classList.add('d-none');
+    voyantePower.classList.add('d-none');
+    village.classList.add('d-none');
 
     if(document.URL.includes("tic")){
     let html = "";
@@ -82,7 +92,6 @@ socket.on('list rooms', (rooms,wolfRooms) => {
                 }
             });
         }
-    
         if (html !== "") {
             roomsCard.classList.remove('d-none');
             // On ajoute à l'élément html des éléments
@@ -93,10 +102,182 @@ socket.on('list rooms', (rooms,wolfRooms) => {
         element.addEventListener('click', joinRoomWolf, false);
         }
     }
-
-
     }
     });
+
+
+socket.on('endGameForVillager', (players, villager) => {
+    console.log('endGameForVillager', players, villager)
+    dodoDiv.classList.add('d-none');
+    reveilSorciereDiv.classList.add('d-none');
+    voyantePower.classList.add('d-none');
+    mangeParLoup.classList.add('d-none');
+    dodoLoupDiv.classList.add('d-none');
+    village.classList.remove('d-none');
+    let playerDead;
+    players.forEach(p => {
+        // On sélectionne le salon du joueur
+            // On sort le joueur décédé
+            playerDead = players.filter(p => {
+                return p.actif == false;
+            });
+    });
+
+    const deadMan = document.getElementById('text-container-dead');
+    if(playerDead != ''){
+        deadMan.innerHTML = "<h1 id=\"player1-dead\" class=\"dead\"> Ce villageois a été tué: " + playerDead.username + "</h1>";
+
+    } else {
+        deadMan.innerHTML = "<h1 id=\"player1-dead\" class=\"dead\"> Personne n'a été tué cette nuit </h1>";
+
+    }
+})
+
+// Fin de la nuit pour tous les joueurs
+socket.on('endNightVillageAll', () => {
+    loupNuitDiv.classList.add('d-none');
+    dodoDiv.classList.add('d-none');
+    dodoLoupDiv.classList.add('d-none');
+    reveilSorciereDiv.classList.add('d-none');
+    village.classList.remove('d-none');
+})
+
+socket.on('launchVoyantePower', (voyantePlayer, wolfRooms) => {
+    dodoDiv.classList.add('d-none');
+    voyantePower.classList.remove('d-none');
+    let OtherVillagers = [];
+    OtherVillagers = findOtherPlayer(wolfRooms, OtherVillagers, voyantePlayer);
+    
+    const buttonContainerSorciere = document.getElementById('button-container-voyante');
+    const displayRoleElement = document.getElementById('text-container-voyante');
+
+    OtherVillagers.forEach(villager => {
+        const buttonCountElement = document.querySelectorAll('#seeRole');
+        if(buttonCountElement.length < OtherVillagers.length){
+            // On paramètre le bouton qu'on créé
+            const button = document.createElement('button');
+            button.textContent = villager.username;
+            button.id = 'seeRole';
+            
+            // On crée pour ce bouton une fonction javascript qui affiche le rôle actuel
+            button.addEventListener("click", function() {
+                seeCurrentRole(villager.src, displayRoleElement, villager);
+                button.hidden;
+            });
+            buttonContainerSorciere.appendChild(button);
+        }
+    });
+
+})
+
+// Fonction pour utilisation pouvoir de la sorcière avec deux boutons 
+// soit elle sauve soit elle ne sauve pas le villageois
+socket.on('sorcierePower', (villager, sorcierePlayer, voyantePlayer) => {
+    dodoDiv.classList.add('d-none');
+    reveilSorciereDiv.classList.remove('d-none');
+
+    // On créé 2 boutons soit on sauve soit on ne sauve pas
+    const buttonContainerSorciere = document.getElementById('button-container-sorciere');
+    const buttonSorciereSave = document.createElement('button');
+    buttonSorciereSave.textContent = "Sauver : " + villager.username;
+    buttonSorciereSave.id ='acceptSave';
+    buttonSorciereSave.addEventListener("click", function() {
+        saveVillager(villager, sorcierePlayer, voyantePlayer);
+        buttonSorciereSave.hidden;
+      });
+      buttonContainerSorciere.appendChild(buttonSorciereSave);
+
+      const buttonSorciereDeny = document.createElement('button');
+      buttonSorciereDeny.textContent = "Laisser mourir : " + villager.username;
+      buttonSorciereDeny.id ='letDie';
+      buttonSorciereDeny.addEventListener("click", function() {
+        buttonSorciereDeny.hidden;
+        villager.actif = false;
+        console.log('Evenement sorciere finit laisser mourir : ',  eventOneTriggered);
+        socket.emit('roleVoyante', voyantePlayer)
+        reveilSorciereDiv.classList.add('d-none');
+        dodoDiv.classList.remove('d-none');
+
+        });
+      buttonContainerSorciere.appendChild(buttonSorciereDeny);
+});
+
+socket.on('nightLoup', (player, wolfRooms) => {
+    loupNuitDiv.classList.remove('d-none');
+    let OtherVillagers = [];
+    OtherVillagers = findOtherPlayer(wolfRooms, OtherVillagers, player);
+        let sorcierePlayer = null;
+        let voyantePlayer = null;
+    OtherVillagers.forEach(villager =>{
+        // On trouve la sorcière 
+        if(villager.roleId == 5 & villager.actif == true & villager.sorcierePowerActive == true)
+            sorcierePlayer = villager;
+        if(villager.roleId == 2){
+            voyantePlayer=villager;
+        }   
+    });   
+    const buttonContainer = document.getElementById('button-container');
+
+    // Pour chaque villageois on créé un bouton
+    OtherVillagers.forEach(villager => {
+
+        const buttonCountElement = document.querySelectorAll('#killingButton');
+        if(buttonCountElement.length < OtherVillagers.length){
+        // On paramètre le boutton qu'on créé
+        const button = document.createElement('button');
+        button.textContent = villager.username;
+        button.id ='killingButton';
+        // On créé pour ce bouton une fonction javascript
+        button.addEventListener("click", function() {
+            wolfkilling(villager, sorcierePlayer, voyantePlayer);
+            buttonCountElement.hidden
+            loupNuitDiv.classList.add('d-none');
+            dodoLoupDiv.classList.remove('d-none');
+          });
+        buttonContainer.appendChild(button);
+        }
+    });
+    
+});
+
+// l'élément d'attente plus lien à partager
+socket.on('join room', (roomId) => {
+    player.roomId = roomId;
+    linkToShare.innerHTML = `<a href="${window.location.href}?room=${player.roomId}" target="_blank">${window.location.href}?room=${player.roomId}</a>`;
+});
+
+
+socket.on('displayRole', ( player, players ) => {
+    mainDiv.hidden;
+    playerContainerDiv.classList.remove('d-none');
+    document.getElementById('player1-username').innerHTML = "<p id=\"player1-username\" class=\"username\"> Ton username: " + player.username + "</p>";
+    if (player.roleId == 1) {
+        loupClass.classList.remove('d-none');
+    } else if(player.roleId == 2){
+        voyanteClass.classList.remove('d-none');
+    } else if(player.roleId == 3){
+        villageoisClass1.classList.remove('d-none');
+    } else if(player.roleId == 4){
+        villageoisClass2.classList.remove('d-none');
+    } else if(player.roleId == 5){
+        sorciereClass.classList.remove('d-none');
+        player.sorcierePowerActive = true;
+    }
+    // On attends 10 secondes pour que le joueur retienne son rôle
+    setTimeout(startFirstDay, 10000, players);
+});
+
+function seeCurrentRole(role, displayRoleElement, villager){
+    displayRoleElement.textContent = "le rôle de la personne sélectionnée est " + villager.src;
+    setTimeout(endPowerSorciere, 5000, villager);
+}
+
+function endPowerSorciere(villager){
+    console.log('Evenement voyante finit : ',  eventTwoTriggered);
+    voyantePower.classList.add('d-none');
+    socket.emit('endNight', villager);
+}
+
 // image du village qui s'affiche
 function startFirstDay(players){
     console.log("début de nuit")
@@ -111,65 +292,29 @@ socket.on('nightVillage', (player) => {
 
 // Fonction on tue un villageois (on rend son attribut actif = false)
 // On regarde si la sorciere a toujours son pouvoir de guérison ou non
-function wolfkilling(villager, sorcierePlayer){
+function wolfkilling(villager, sorcierePlayer, voyantePlayer){
     loupNuitDiv.classList.add('d-none');
     // Pour villageois choisi il est mort
     villager.actif = false;
     // Fonction pour savoir si la sorcière est vivante et a toujours son pouvoir
     if(sorcierePlayer != undefined && sorcierePlayer.sorcierePowerActive == true){
-        socket.emit('endNightSorcierePower', villager, sorcierePlayer);
-    } else {
-        dodoLoupDiv.classList.remove('d-none');
-        socket.emit('endNight', villager);
+        loupNuitDiv.classList.add('d-none');
+        socket.emit('endNightSorcierePower', villager, sorcierePlayer, voyantePlayer);
+    } else{
+        loupNuitDiv.classList.add('d-none');
+        socket.emit('roleVoyante', voyantePlayer)
     }
+
 }
 
-socket.on('endGameForVillager', (villager) => {
-    dodoDiv.classList.add('d-none');
+function saveVillager(villager, sorcierePlayer, voyantePlayer){
     reveilSorciereDiv.classList.add('d-none');
-    mangeParLoup.classList.remove('d-none');
-})
+    dodoDiv.classList.remove('d-none');
 
-// Fin de la nuit pour tous les joueurs
-socket.on('endNightVillageAll', () => {
-    loupNuitDiv.classList.add('d-none');
-    dodoDiv.classList.add('d-none');
-    dodoLoupDiv.classList.add('d-none');
-    reveilSorciereDiv.classList.add('d-none');
-})
-
-// Fonction pour utilisation pouvoir de la sorcière avec deux boutons 
-// soit elle sauve soit elle ne sauve pas le villageois
-socket.on('sorcierePower', (villager, sorcierePlayer) => {
-    console.log('sorcierePower', villager, sorcierePlayer)
-    dodo.classList.add('d-none');
-    reveilSorciereDiv.classList.remove('d-none');
-
-    // On créé 2 boutons soit on sauve soit on ne sauve pas
-    const buttonContainerSorciere = document.getElementById('button-container-sorciere');
-    const buttonSorciereSave = document.createElement('button');
-    buttonSorciereSave.textContent = "Sauver : " + villager.username;
-    buttonSorciereSave.id ='acceptSave';
-    buttonSorciereSave.addEventListener("click", function() {
-        saveVillager(villager, sorcierePlayer);
-        buttonSorciereSave.hidden;
-      });
-      buttonContainerSorciere.appendChild(buttonSorciereSave);
-
-      const buttonSorciereDeny = document.createElement('button');
-      buttonSorciereDeny.textContent = "Laisser mourir : " + villager.username;
-      buttonSorciereDeny.id ='letDie';
-      buttonSorciereDeny.addEventListener("click", function() {
-        socket.emit('endNight', villager);
-        buttonSorciereDeny.hidden;
-        });
-      buttonContainerSorciere.appendChild(buttonSorciereDeny);
-});
-
-function saveVillager(villager, sorcierePlayer){
     villager.actif = true;
     sorcierePlayer.sorcierePowerActive = false;
-    socket.emit('endNight', villager);
+    console.log('Evenement sorciere finit sauver :');
+    socket.emit('roleVoyante', voyantePlayer)
 }
 
 // Formulaire username pour jeu tic-toc ou création salon
@@ -219,83 +364,19 @@ $("#formWolf").on('submit', function (e) {
 });
 
 
-
-
-
-socket.on('nightLoup', (player, wolfRooms) => {
-    loupNuitDiv.classList.remove('d-none');
-    let OtherVillagers = [];
+function findOtherPlayer(wolfRooms, OtherVillagers, currentPlayer){
     // On boucle sur chaque salon de loup-garou
-        wolfRooms.forEach(r => {
-            // On sélectionne le salon du joueur
-            if(r.id == player.roomId){
-                // On sort tous les joueurs non loup garou
-                OtherVillagers = r.players.filter(p => {
-                    return p.socketId !== player.socketId;
-                });
-            }
-        });
-
-        let sorcierePlayer = null;
-
-    OtherVillagers.forEach(villager =>{
-        // On trouve la sorcière 
-        if(villager.roleId == 5 & villager.actif == true & villager.sorcierePowerActive == true)
-            sorcierePlayer = villager;
-       });
-
-       
-    const buttonContainer = document.getElementById('button-container');
-
-    // Pour chaque villageois on créé un bouton
-    OtherVillagers.forEach(villager => {
-
-        const buttonCountElement = document.querySelectorAll('#killingButton');
-        if(buttonCountElement.length < OtherVillagers.length){
-        // On paramètre le boutton qu'on créé
-        const button = document.createElement('button');
-        button.textContent = villager.username;
-        button.id ='killingButton';
-        // On créé pour ce bouton une fonction javascript
-        button.addEventListener("click", function() {
-            wolfkilling(villager, sorcierePlayer);
-            buttonCountElement.hidden
-            loupNuitDiv.classList.add('d-none');
-            dodoLoupDiv.classList.remove('d-none');
-          });
-        buttonContainer.appendChild(button);
+    wolfRooms.forEach(r => {
+        // On sélectionne le salon du joueur
+        if(r.id == player.roomId){
+            // On sort tous les joueurs non loup garou
+            OtherVillagers = r.players.filter(p => {
+                return p.socketId !== player.socketId;
+            });
         }
     });
-    
-});
-
-// l'élément d'attente plus lien à partager
-socket.on('join room', (roomId) => {
-    player.roomId = roomId;
-    linkToShare.innerHTML = `<a href="${window.location.href}?room=${player.roomId}" target="_blank">${window.location.href}?room=${player.roomId}</a>`;
-});
-
-
-socket.on('displayRole', ( player, players ) => {
-    mainDiv.hidden;
-    playerContainerDiv.classList.remove('d-none');
-    document.getElementById('player1-username').innerHTML = "<p id=\"player1-username\" class=\"username\"> Ton username: " + player.username + "</p>";
-    if (player.roleId == 1) {
-        loupClass.classList.remove('d-none');
-    } else if(player.roleId == 2){
-        voyanteClass.classList.remove('d-none');
-    } else if(player.roleId == 3){
-        villageoisClass1.classList.remove('d-none');
-    } else if(player.roleId == 4){
-        villageoisClass2.classList.remove('d-none');
-    } else if(player.roleId == 5){
-        sorciereClass.classList.remove('d-none');
-        player.sorcierePowerActive = true;
-    }
-    // On attends 10 secondes pour que le joueur retienne son rôle
-    setTimeout(startFirstDay, 10000, players);
-});
-
+    return OtherVillagers;
+}
 
 function startGame(players){
     cellierDiv.classList.add('d-none');
